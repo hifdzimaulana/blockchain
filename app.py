@@ -1,5 +1,4 @@
 import sys
-import requests
 
 from flask import Flask
 from flask.globals import request
@@ -10,6 +9,8 @@ from uuid import uuid4
 from blockchain import Blockchain
 
 app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False  # very important for validating NONCE
+
 blockchain = Blockchain()
 
 node_identifier = str(uuid4()).replace('-', '')
@@ -71,6 +72,40 @@ def new_transaction():
 
     response = {'message': f'Transaction will be added to block {index}'}
     return (response, 201)
+
+
+@app.route('/nodes/new', methods=['POST'])
+def add_nodes():
+    values = request.get_json()
+    nodes = values.get('nodes')
+
+    if (nodes is None):
+        return ("Error! Missing node info", 400)
+
+    for node in nodes:
+        blockchain.add_node(node)
+
+    response = {
+        'message': 'New node has been added',
+        'nodes_on_network': list(blockchain.nodes)
+    }
+    return (response, 200)
+
+
+@app.route('/nodes/synchronize', methods=['GET'])
+def synchronize():
+    result = blockchain.update_chain()
+    response = {}
+
+    if (result):
+        response['message'] = 'Updated'
+        response['nodes_on_network'] = list(blockchain.nodes)
+        return (response, 200)
+
+    else:
+        response['message'] = 'Your chain is already updated'
+        response['nodes_on_network'] = list(blockchain.nodes)
+        return (response, 200)
 
 
 if __name__ == '__main__':

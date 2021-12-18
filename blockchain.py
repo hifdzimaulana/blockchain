@@ -3,7 +3,6 @@ import json
 
 from time import time
 from urllib.parse import urlparse
-from warnings import resetwarnings
 
 import requests
 
@@ -31,20 +30,18 @@ class Blockchain(object):
 
     def chain_validation(self, chain):
         previous_block = chain[0]
-
         index = 1
+
         while (index < len(chain)):
             block = chain[index]
+            hash_of_previous_block = block['hash_of_previous_block']
+            transactions = block['transactions']
+            nonce = block['nonce']
 
-            if (block['hash_of_previous_block'] != self.hash_block(previous_block)):
+            if (hash_of_previous_block != self.hash_block(previous_block)):
                 return False
 
-            if not self.nonce_validation(
-                index=index,
-                hash_of_previous_block=block['hash_of_previous_block'],
-                transaction=block['transactions'],
-                nonce=block['nonce']
-            ):
+            if not self.nonce_validation(index, hash_of_previous_block, transactions, nonce):
                 return False
 
             previous_block = block
@@ -53,25 +50,29 @@ class Blockchain(object):
         return True
 
     def update_chain(self):
+        neighbours = self.nodes
         new_chain = None
 
         maximum_length = len(self.chain)
 
-        for node in self.nodes:
+        for node in neighbours:
             response = requests.get(f'http://{node}/blockchain')
 
             if (response.status_code == 200):
-
                 length = response.json()['length']
                 chain = response.json()['chain']
 
-                if (length > maximum_length and self.chain_validation(chain) is True):
+                if (length > maximum_length and self.chain_validation(chain) == True):
                     maximum_length = length
-                    self.chain = chain
+                    new_chain = chain
+
+                if (new_chain):
+                    self.chain = new_chain
                     return True
+        return False
 
     def hash_block(self, block):
-        encoded_block = json.dumps(block, sort_keys=False).encode()
+        encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
     def proof_of_work(self, index, hash_of_previous_block, transactions):
@@ -82,11 +83,11 @@ class Blockchain(object):
 
         return nonce
 
-    def nonce_validation(self, index, hash_of_previous_block, transaction, nonce):
-        content = f"{index}{hash_of_previous_block}{transaction}{nonce}".encode()
-        content = hashlib.sha256(content).hexdigest()
-
+    def nonce_validation(self, index, hash_of_previous_block, transactions, nonce):
+        content = hashlib.sha256(
+            f"{index}{hash_of_previous_block}{transactions}{nonce}".encode()).hexdigest()
         print(content)
+
         return content[:len(self.difficulty_target)] == self.difficulty_target
 
     def append_block(self, hash_of_previous_block, nonce):
@@ -115,6 +116,6 @@ class Blockchain(object):
 
         return len(self.chain) + 1
 
-    @property
+    @ property
     def last_block(self):
         return self.chain[-1]
