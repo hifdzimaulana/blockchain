@@ -3,6 +3,9 @@ import json
 
 from time import time
 from urllib.parse import urlparse
+from warnings import resetwarnings
+
+import requests
 
 
 class Blockchain(object):
@@ -48,6 +51,24 @@ class Blockchain(object):
             index += 1
 
         return True
+
+    def update_chain(self):
+        new_chain = None
+
+        maximum_length = len(self.chain)
+
+        for node in self.nodes:
+            response = requests.get(f'http://{node}/blockchain')
+
+            if (response.status_code == 200):
+
+                length = response.json()['length']
+                chain = response.json()['chain']
+
+                if (length > maximum_length and self.chain_validation(chain) is True):
+                    maximum_length = length
+                    self.chain = chain
+                    return True
 
     def hash_block(self, block):
         encoded_block = json.dumps(block, sort_keys=False).encode()
