@@ -21,8 +21,8 @@ node_identifier = str(uuid4()).replace('-', '')
 @app.route('/blockchain', methods=['GET'])
 def full_chain():
     response = {
-        'chain': blockchain.chain,
-        'length': len(blockchain.chain)
+        'length': len(blockchain.chain),
+        'chain': blockchain.chain
     }
 
     return jsonify(response), 200

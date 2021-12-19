@@ -34,14 +34,11 @@ class Blockchain(object):
 
         while (index < len(chain)):
             block = chain[index]
-            hash_of_previous_block = block['hash_of_previous_block']
-            transactions = block['transactions']
-            nonce = block['nonce']
 
-            if (hash_of_previous_block != self.hash_block(previous_block)):
+            if (block['hash_of_previous_block'] != self.hash_block(previous_block)):
                 return False
 
-            if not self.nonce_validation(index, hash_of_previous_block, transactions, nonce):
+            if not self.nonce_validation(index, block['hash_of_previous_block'], block['transactions'], block['nonce']):
                 return False
 
             previous_block = block
